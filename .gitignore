@@ -1,1 +1,66 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env/
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Environment files
 .env
+*.env
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Logs and debug
+*.log
+logs/
+
+# Test and coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# MyPy, Pyright, and other tooling
+.mypy_cache/
+.pyright/
+.pytest_cache/
+
+# SQLite DB or temporary data
+*.db
+*.sqlite3
+
+# Excel files (if they are outputs)
+*.xlsx
+*.xls
+
+# Temporary files
+*.bak
+*.tmp
+*.swp
