@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+openai
+pandas
+openpyxl
+openai-agents
+asyncio

@@ -2,13 +2,17 @@ import asyncio
 import json
 import logging
 import re
-from typing import List, Optional, TypedDict
+from typing import AsyncGenerator, List, Optional, TypedDict
 
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 import pandas as pd
 from dotenv import load_dotenv
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
-from agents import Agent, Runner, function_tool
+from agents import Agent, ModelSettings, Runner, function_tool
+from openai.types.responses import ResponseTextDeltaEvent
+from pydantic import BaseModel, Field
 
 from backend.helpers.schema import SCHEMA
 
@@ -181,7 +185,7 @@ For calculation purpose, write a Python function and execute it using function t
 
 You must only rely on the schema provided below for determining which columns exist in which sheets.
 Here is the complete schema of available files and their sheets/columns:
-SCHEMA_JSON = {json.dumps(SCHEMA, indent=2)}
+SCHEMA_JSON = {json.dumps(SCHEMA, indent=None)}
 """
 
 
@@ -190,13 +194,78 @@ async def data_analyser():
     data_analyser_assistant = Agent(
         name="Hotel Data Analyser",
         instructions=instructions,
+        # model="gpt-4o-mini",
+        # model_settings=ModelSettings(
+        #     temperature=0.3,  # Lower for more deterministic outputs (0.0-2.0)
+        #     max_tokens=1024,  # Maximum length of response
+        # ),
         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
     )
 
     question = "read the report criteria ?"
-    result = await Runner.run(data_analyser_assistant, question)
-    print(result.final_output)
+    # result = await Runner.run(data_analyser_assistant, question)
+    # print(result.final_output)
+    result = Runner.run_streamed(data_analyser_assistant, question)
+    async for event in result.stream_events():
+        if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+            print(event.data.delta, end="", flush=True)
 
-if __name__ == "__main__":
-    asyncio.run(data_analyser())
-    # print(instructions)
+class ChatMessage(BaseModel):
+    role: str = Field(..., regex="^(user|ai)$")
+    content: str
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+
+DATA_ANALYSER_AGENT = Agent(
+    name="Hotel Data Analyser",
+    instructions=instructions,
+    # model="gpt-4o-mini",
+    # model_settings=ModelSettings(
+    #     temperature=0.3,  # Lower for more deterministic outputs (0.0-2.0)
+    #     max_tokens=1024,  # Maximum length of response
+    # ),
+    tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
+)
+
+def latest_user_question(messages: List[ChatMessage]) -> str:
+    for msg in reversed(messages):
+        if msg.role == "user" and msg.content.strip():
+            return msg.content.strip()
+    raise ValueError("No user question found")
+
+app = FastAPI(title="Hotel Data Chat API", version="1.0")
+
+@app.post("/api/v1/chat")
+async def chat_endpoint(request: ChatRequest):
+    """
+    POST /api/v1/chat
+    {
+        "messages": [
+            {"role": "user", "content": "How are you?"},
+            {"role": "ai",   "content": "I am good"},
+            {"role": "user", "content": "read the report criteria ?"}
+        ]
+    }
+    """
+    try:
+        question = latest_user_question(request.messages)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    async def stream() -> AsyncGenerator[str, None]:
+        runner = Runner.run_streamed(DATA_ANALYSER_AGENT, question)
+        async for event in runner.stream_events():
+            if (
+                event.type == "raw_response_event"
+                and isinstance(event.data, ResponseTextDeltaEvent)
+                and event.data.delta
+            ):
+                # Convert any delta payload (obj / dict / str) → str for the wire
+                yield str(event.data.delta)
+
+    return StreamingResponse(stream(), media_type="text/plain")
+
+# if __name__ == "__main__":
+#     asyncio.run(data_analyser())
+#     # print(instructions)

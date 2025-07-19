@@ -1,11 +1,20 @@
 import pandas as pd
 
-from backend.constants import THEALEX_SHEET_CONFIG
 
-def read_sheet_with_custom_header(filepath: str, sheet: str, sheet_configs: dict) -> dict:
+import pandas as pd
+from typing import Optional, List
+
+from backend.helpers.sheet_configs import THE_ALEX_SHEET_CONFIG
+
+def read_sheet_with_custom_header(
+    filepath: str,
+    sheet: str,
+    sheet_configs: dict,
+    columns: Optional[List[str]] = None
+) -> dict:
+    print(f"read_sheet_with_custom_header → filepath='{filepath}', sheet='{sheet}', sheet_configs={sheet_configs}, columns={columns}")
     config = sheet_configs.get(sheet, {})
     start_row = config.get("start", 0)
-    # If 'end' not provided, read until the end of the file
     end_row = config.get("end")
 
     # Read entire sheet without header
@@ -24,12 +33,34 @@ def read_sheet_with_custom_header(filepath: str, sheet: str, sheet_configs: dict
     data_df.columns = header_row
 
     # Sanitize headers
-    data_df.columns = [str(col).strip().replace('\n', ' ').replace('\r', '').replace('\t', ' ').lower() for col in data_df.columns]
+    sanitized_columns = [
+        str(col).strip().replace('\n', ' ').replace('\r', '').replace('\t', ' ').lower()
+        for col in data_df.columns
+    ]
+    data_df.columns = sanitized_columns
+
+    # If columns filter is provided, normalize and filter
+    if columns:
+        # Normalize input column names to match sanitized ones
+        normalized_columns = [
+            str(col).strip().replace('\n', ' ').replace('\r', '').replace('\t', ' ').lower()
+            for col in columns
+        ]
+
+        # Check which columns exist
+        existing_columns = [col for col in normalized_columns if col in data_df.columns]
+
+        if not existing_columns:
+            raise ValueError(f"None of the requested columns {columns} were found in the sheet '{sheet}'.")
+
+        data_df = data_df[existing_columns]
+        header_row = [col for col in header_row if str(col).strip().lower() in existing_columns]
 
     return {
         "header": header_row,
         "data": data_df
     }
+
 
 
 def sum_jan_rooms(df):
@@ -47,7 +78,7 @@ def sum_jan_rooms(df):
 
 if __name__ == "__main__":
     file_path = 'data/TheAlexIdeas27_June_2025.xlsx'
-    data = read_sheet_with_custom_header(filepath=file_path, sheet="Property", sheet_configs=THEALEX_SHEET_CONFIG)
+    data = read_sheet_with_custom_header(filepath=file_path, sheet="Report Criteria", sheet_configs=THE_ALEX_SHEET_CONFIG, columns=["Property Name", "start date"])
     # print(data.get("header"))
     print(data.get("data"))
     # df = data.get("data")

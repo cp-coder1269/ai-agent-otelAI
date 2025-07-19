@@ -2,7 +2,9 @@
 import pandas as pd, json
 import os
 
-def getJsonStructureOfXls(file_path, sheet_headers=None):
+from backend.helpers.sheet_configs import OC_SHEET_CONFIG, THE_ALEX_SHEET_CONFIG
+
+def getJsonStructureOfXls(file_path, sheet_config=None):
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
         return {}
@@ -10,7 +12,7 @@ def getJsonStructureOfXls(file_path, sheet_headers=None):
     result = {}
     for sheet in xls.sheet_names:
         try:
-            header_row = sheet_headers.get(sheet, 0) if sheet_headers else 0
+            header_row = sheet_config.get(sheet, {}).get("start", 0) if sheet_config else 0
             df = pd.read_excel(xls, sheet_name=sheet, header=header_row)
         except Exception as e:
             print(f'Failed to load {sheet}: {e}')
@@ -31,3 +33,12 @@ def getJsonStructureOfXls(file_path, sheet_headers=None):
         result[sheet] = type_map
     json_output = json.dumps(result, indent=2)
     return json_output
+
+if __name__ == "__main__":
+    file_path = "data/OCOnboardingInformation.xlsx"
+    oc_file_structure = getJsonStructureOfXls(file_path, OC_SHEET_CONFIG)
+    print(oc_file_structure)
+
+    file_path = "data/TheAlexIdeas27_June_2025.xlsx"
+    alex_file_structure = getJsonStructureOfXls(file_path, THE_ALEX_SHEET_CONFIG)
+    print(alex_file_structure)
