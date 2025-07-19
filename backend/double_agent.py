@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import re
-from typing import Any, List, TypedDict
+from typing import List, Optional, TypedDict
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -18,7 +18,7 @@ logging.basicConfig(filename="function_calls.log", level=logging.INFO)
 # Define strict types for function_tool compatibility
 class SheetConfig(TypedDict, total=False):
     start: int
-    end: int
+    end: Optional[int]=None
 
 class ReadSheetResult(TypedDict):
     sheet: str
@@ -30,21 +30,37 @@ class ReadSheetResult(TypedDict):
 def read_sheet_with_custom_header(
     filepath: str,
     sheet: str,
-    config: SheetConfig
+    config: Optional[SheetConfig] = None
 ) -> ReadSheetResult:
     """
-    Reads an Excel sheet with a custom header row, returning raw + sanitised data.
+    Reads an Excel sheet with a custom header row, returning both raw and sanitized data.
+
+    Args:
+        filepath (str): The file path to the Excel workbook.
+        sheet (str): The name of the sheet to read.
+        config (dict, optional): Configuration dict with the following keys:
+            - 'start' (int, optional): Row index to use as the column header. Defaults to 0.
+            - 'end' (int, optional): Row index to stop reading (inclusive). By default, reads until the last row.
+
+    Returns:
+        dict: A dictionary containing:
+            - 'sheet': Name of the sheet.
+            - 'header': The original header row, as a list.
+            - 'columns': Sanitized column names.
+            - 'rows': List of records, each as a dictionary.
+
+    Raises:
+        ValueError: If the `start` index is out of range for the dataframe.
     """
     logging.info(
         f"read_sheet_with_custom_header(filepath={filepath}, "
         f"sheet={sheet}, config={config})"
     )
 
-    if not config or "start" not in config:
-        raise ValueError(f"Invalid configuration for sheet '{sheet}'")
-
-    start_row = config["start"]
-    end_row = config.get("end")
+    # Set robust defaults
+    config = config or {}
+    start_row = config.get("start", 0)
+    end_row = config.get("end", None)
 
     df = pd.read_excel(filepath, sheet_name=sheet, header=None, engine="openpyxl")
     header_row = df.iloc[start_row].tolist()
@@ -106,9 +122,18 @@ def execute_function_safely_using_exec(
             "list": list,
             "dict": dict,
             "print": print,
+            "sum": sum,
+            "min": min,
+            "max": max,
+            "abs": abs,
+            "round": round,
         },
         "pd": pd,
         "re": re,
+        "datetime": __import__("datetime"),
+        "date": __import__("datetime").date,
+        "datetime": __import__("datetime").datetime,
+        "timedelta": __import__("datetime").timedelta,
     }
     local_vars: dict = {}
 
@@ -140,7 +165,7 @@ You must:
 2. Use the `read_sheet_with_custom_header` tool with these parameters:
    - `filepath`: path of the file.
    - `sheet`: sheet name.
-   - `sheet_configs`: dictionary of `{sheet_name: {"start": row, "end": optional_row}}`.
+   - `sheet_configs`: dictionary of `{sheet_name: {"start": row, "end": optional_row}}`.Don't use/modify config your own
 
 3. Use the returned DataFrame to extract the required data, compute answers (e.g., sum, count, find a value), and return the result.
 
@@ -250,7 +275,7 @@ Here is the complete schema of available files and their sheets/columns:
         }
     },
     "alex_ideas_file": {
-        "file_path": "data/TheAlexIdeas 27_June_2025.xlsx",
+        "file_path": "data/TheAlexIdeas27_June_2025.xlsx",
         "alex_ideas_structure": {
             "Property": {
                 "Property Name": "str",
@@ -300,7 +325,7 @@ Here is the complete schema of available files and their sheets/columns:
             }
         },
         "sheet_configs": {
-            "Report Criteria": { "start": 3 }
+            "Report Criteria": { "start": 2 }
         }
     }
 }
@@ -315,7 +340,7 @@ async def data_analyser():
         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
     )
 
-    question = "What is the on-the-books (OTB) revenue? how much it is for August compared to the same time last year (STLY)?"
+    question = "read the report criteria ?"
     result = await Runner.run(data_analyser_assistant, question)
     print(result.final_output)
 
