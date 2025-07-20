@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import re
-from typing import List, TypedDict
+from typing import List, Optional, TypedDict
 
 
 import pandas as pd
@@ -19,7 +19,7 @@ logging.basicConfig(filename="function_calls.log", level=logging.INFO)
 # Define strict types for function_tool compatibility
 class SheetConfig(TypedDict, total=False):
     start: int
-    end: int
+    end: Optional[int]=None
 
 class ReadSheetResult(TypedDict):
     sheet: str
@@ -31,7 +31,7 @@ class ReadSheetResult(TypedDict):
 def read_sheet_with_custom_header(
     filepath: str,
     sheet: str,
-    config: SheetConfig
+    config: Optional[SheetConfig] = None
 ) -> ReadSheetResult:
     """
     Reads an Excel sheet with a custom header row, returning raw + sanitised data.
@@ -40,12 +40,10 @@ def read_sheet_with_custom_header(
         f"read_sheet_with_custom_header(filepath={filepath}, "
         f"sheet={sheet}, config={config})"
     )
-
-    if not config or "start" not in config:
-        raise ValueError(f"Invalid configuration for sheet '{sheet}'")
-
-    start_row = config["start"]
-    end_row = config.get("end")
+    # Set robust defaults
+    config = config or {}
+    start_row = config.get("start", 0)
+    end_row = config.get("end", None)
 
     df = pd.read_excel(filepath, sheet_name=sheet, header=None, engine="openpyxl")
     header_row = df.iloc[start_row].tolist()
@@ -110,6 +108,10 @@ def execute_function_safely_using_exec(
         },
         "pd": pd,
         "re": re,
+        "datetime": __import__("datetime"),
+        "date": __import__("datetime").date,
+        "datetime": __import__("datetime").datetime,
+        "timedelta": __import__("datetime").timedelta,
     }
     local_vars: dict = {}
 
@@ -147,15 +149,33 @@ You must:
 
    This is for schema detection and type hinting only. Do not analyze this partial data directly.
 
-3. After previewing the sample:
-   - Write a Python function that uses `read_sheet_with_custom_header` again
-     - But this time, **omit the `end` parameter** to read the **full data**
-   - Use this full dataset for calculations like sum, comparison, filter, etc.
-   - Your function should return the computed result clearly
+3. Write a Python function for final analysis
+   This function reads the full data using `read_sheet_with_custom_header` and performs required computation Follow these:
+   - Inside the function:
+     - Use exact `filepath`, `sheet`, and `config` (no modification) from the provided `sheet_configs` in the schema.
+     - Call: `read_sheet_with_custom_header(filepath, sheet, config)`
+     - Normalize columns: lowercase, strip whitespace and newline characters
+     - Perform required computations: `sum`, `average`, `filter`, `group`, `compare`, etc.
+     - Return the final result clearly as a **string** or **number**
 
 4. Execute this Python function using the tool `execute_function_safely_using_exec` and return the output to the user.
 
 5. Always explain which file, sheet, and columns you used
+
+6. Extra Info (if needed):
+    Room capacity per night is 103 (from context, not in Excel).
+    So:
+    Jan has 31 days → total available rooms = 31 * 103 = 3193
+    Use this only if your logic requires total room availability.
+
+7. Allowed operations in the execution environment
+   - **Built-in functions**: `len`, `range`, `str`, `int`, `float`, `list`, `dict`, `print`
+   - **Libraries**: `pandas` as `pd`, `re`, `datetime` (`datetime`, `date`, `timedelta`)
+   - **Reading data**: Only via `read_sheet_with_custom_header(filepath, sheet, config)`
+   - **Not allowed**:
+     - File I/O (no `open`, `write`, etc.)
+     - Network calls or external APIs
+     - Multiple function definitions — only one function per execution
 
 You must only rely on the schema provided below for determining which columns exist in which sheets.
 Here is the complete schema of available files and their sheets/columns:
@@ -307,7 +327,10 @@ Here is the complete schema of available files and their sheets/columns:
             }
         },
         "sheet_configs": {
-            "Report Criteria": { "start": 3 }
+            "Property": { "start": 0 },
+            "Room Type": { "start": 0 },
+            "Business View": { "start": 0 },
+            "Report Criteria": { "start": 2 }
         }
     }
 }
@@ -319,10 +342,11 @@ async def data_analyser():
     data_analyser_assistant = Agent(
         name="Hotel Data Analyser",
         instructions=instructions,
+        # model="gpt-4o-mini",
         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
     )
 
-    question = "What is the on-the-books (OTB) revenue? how much it is for August compared to the same time last year (STLY)?"
+    question = "What is the on-the-books (OTB) revenue for August compared to the same time last year (STLY)?"
     result = await Runner.run(data_analyser_assistant, question)
     print(result.final_output)
 

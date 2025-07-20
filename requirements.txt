@@ -5,3 +5,5 @@ pandas
 openpyxl
 openai-agents
 asyncio
+streamlit
+numpy
