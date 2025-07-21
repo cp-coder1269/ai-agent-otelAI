@@ -23,18 +23,18 @@ class SheetConfig(TypedDict, total=False):
 
 class ReadSheetResult(TypedDict):
     sheet: str
-    header: List[str]
     columns: List[str]
     rows: List[dict]
 
-@function_tool
+# @function_tool
 def read_sheet_with_custom_header(
     filepath: str,
     sheet: str,
-    config: Optional[SheetConfig] = None
+    config: Optional[SheetConfig] = None,
+    columns: Optional[List[str]] = None
 ) -> ReadSheetResult:
     """
-    Reads an Excel sheet with a custom header row, returning raw + sanitised data.
+    Reads an Excel sheet with a custom header row, returning raw + sanitised data of the selected columns if provided else returns all the columns.
     """
     logging.info(
         f"read_sheet_with_custom_header(filepath={filepath}, "
@@ -56,6 +56,27 @@ def read_sheet_with_custom_header(
     )
     # Apply original headers
     data_df.columns = header_row
+    # print("data_df.columns: ", data_df.columns)
+    if columns:
+        def normalize(col: str) -> str:
+            return str(col).strip().lower()
+
+        actual_header_map = {normalize(col): col for col in data_df.columns}
+        requested_normalized = [normalize(col) for col in columns]
+
+        missing = [col for col in requested_normalized if col and col not in actual_header_map]
+        if missing:
+            raise ValueError(
+                f"Some requested columns were not found in the header: {missing}\n"
+                f"Available columns: {list(actual_header_map.keys())}"
+            )
+
+        selected_cols = [actual_header_map[col] for col in requested_normalized]
+        data_df = data_df[selected_cols]
+        # print("selected_cols: ", selected_cols)
+
+    # print("data_df: ", data_df)
+    # print("data_df.columns: ", data_df.columns)
     # Sanitise
     sanitised_cols = [
         str(col).strip().replace("\n", " ").replace("\r", "").replace("\t", " ").lower()
@@ -65,7 +86,6 @@ def read_sheet_with_custom_header(
 
     return {
         "sheet": sheet,
-        "header": header_row,
         "columns": sanitised_cols,
         "rows": data_df.to_dict(orient="records"),
     }
@@ -346,9 +366,10 @@ async def data_analyser():
         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
     )
 
-    question = "What is the on-the-books (OTB) revenue for August compared to the same time last year (STLY)?"
+    question = "read report criteria"
     result = await Runner.run(data_analyser_assistant, question)
     print(result.final_output)
 
 if __name__ == "__main__":
-    asyncio.run(data_analyser())
+    # asyncio.run(data_analyser())
+    print(read_sheet_with_custom_header(filepath="data/TheAlexIdeas27_June_2025.xlsx", sheet="Room Type", config={ "start": 0, "end": 5 } ) )
