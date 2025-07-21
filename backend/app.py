@@ -3,11 +3,13 @@ import logging
 from typing import AsyncGenerator, List, Literal, Optional
 
 from dotenv import load_dotenv
+import os
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
 from agents import Agent, Runner, function_tool
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from openai.types.responses import ResponseTextDeltaEvent
 from pydantic import BaseModel
 
@@ -27,7 +29,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
+# Load TOKEN from environment
+TOKEN = os.environ.get('TOKEN')
+if not TOKEN:
+    raise RuntimeError('TOKEN environment variable not set')
 
 
 @function_tool
@@ -102,15 +107,22 @@ def latest_user_question(messages: List[ChatMessage]) -> str:
     raise ValueError("No user question found")
 
 app = FastAPI(title="Hotel Data Chat API", version="1.0")
+# Bearer Auth setup
+security = HTTPBearer()
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials.credentials != TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid or missing token")
+
 
 @app.post("/api/v1/chat")
-async def chat_endpoint(request: ChatRequest):
+async def chat_endpoint(request: ChatRequest, _: HTTPAuthorizationCredentials = Depends(verify_token)):
     """
     POST /api/v1/chat
     {
         "messages": [
             {"role": "user", "content": "How are you?"},
-            {"role": "ai",   "content": "I am good"},
+            {"role": "assistant",   "content": "I am good"},
             {"role": "user", "content": "read the report criteria ?"}
         ]
     }
