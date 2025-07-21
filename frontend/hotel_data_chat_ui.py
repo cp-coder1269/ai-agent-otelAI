@@ -83,7 +83,7 @@ if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
 if "api_base" not in st.session_state:
-    st.session_state.api_base = "http://localhost:8000"
+    st.session_state.api_base = "https://ai-agent-otelai.onrender.com"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Sidebar – settings & controls

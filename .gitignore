@@ -59,6 +59,8 @@ dist/
 # Excel files (if they are outputs)
 *.xlsx
 *.xls
+!data/OCOnboardingInformation.xlsx
+!data/TheAlexIdeas27_June_2025.xlsx
 
 # Temporary files
 *.bak
