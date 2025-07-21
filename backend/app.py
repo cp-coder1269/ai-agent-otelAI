@@ -7,7 +7,7 @@ import os
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
 from agents import Agent, Runner, function_tool
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from openai.types.responses import ResponseTextDeltaEvent
@@ -93,12 +93,12 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
 
-HOTEL_DATA_ANALYSER_AGENT = Agent(
-        name="Hotel Data Analyser",
-        instructions=instructions,
-        # model="gpt-4o-mini",
-        tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
-    )
+# HOTEL_DATA_ANALYSER_AGENT = Agent(
+#         name="Hotel Data Analyser",
+#         instructions=instructions,
+#         # model="gpt-4o-mini",
+#         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
+#     )
 
 def latest_user_question(messages: List[ChatMessage]) -> str:
     for msg in reversed(messages):
@@ -115,33 +115,88 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         raise HTTPException(status_code=401, detail="Invalid or missing token")
 
 
-@app.post("/api/v1/chat")
-async def chat_endpoint(request: ChatRequest, _: HTTPAuthorizationCredentials = Depends(verify_token)):
-    """
-    POST /api/v1/chat
-    {
-        "messages": [
-            {"role": "user", "content": "How are you?"},
-            {"role": "assistant",   "content": "I am good"},
-            {"role": "user", "content": "read the report criteria ?"}
-        ]
-    }
-    """
+# @app.post("/api/v1/chat")
+# async def chat_endpoint(request: ChatRequest, _: HTTPAuthorizationCredentials = Depends(verify_token)):
+#     """
+#     POST /api/v1/chat
+#     {
+#         "messages": [
+#             {"role": "user", "content": "How are you?"},
+#             {"role": "assistant",   "content": "I am good"},
+#             {"role": "user", "content": "read the report criteria ?"}
+#         ]
+#     }
+#     """
+#     try:
+#         question = latest_user_question(request.messages)
+#     except ValueError as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+#     async def stream() -> AsyncGenerator[str, None]:
+#         runner = Runner.run_streamed(HOTEL_DATA_ANALYSER_AGENT, question)
+#         async for event in runner.stream_events():
+#             if (
+#                 event.type == "raw_response_event"
+#                 and isinstance(event.data, ResponseTextDeltaEvent)
+#                 and event.data.delta
+#             ):
+#                 print(event.data.delta, end="", flush=True)
+#                 # Convert any delta payload (obj / dict / str) → str for the wire
+#                 yield str(event.data.delta)
+
+#     return StreamingResponse(stream(), media_type="text/plain")
+
+# SSE-style generator for streaming agent response
+async def agent_response_stream(question: str):
     try:
-        question = latest_user_question(request.messages)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        agent = Agent(
+            name="Hotel Data Analyser",
+            instructions=instructions,
+            tools=[read_sheet_with_custom_header, execute_function_safely_using_exec],
+        )
 
-    async def stream() -> AsyncGenerator[str, None]:
-        runner = Runner.run_streamed(HOTEL_DATA_ANALYSER_AGENT, question)
-        async for event in runner.stream_events():
-            if (
-                event.type == "raw_response_event"
-                and isinstance(event.data, ResponseTextDeltaEvent)
-                and event.data.delta
-            ):
-                print(event.data.delta, end="", flush=True)
-                # Convert any delta payload (obj / dict / str) → str for the wire
-                yield str(event.data.delta)
+        # Use Runner.run_streamed() as a class method
+        result = Runner.run_streamed(agent, input=question)
+        
+        # Stream events from the result
+        async for event in result.stream_events():
+            # Handle different event types
+            if event.type == "run_item_stream_event":
+                if event.item.type == "message_output_item":
+                    # Extract text from message output
+                    from agents import ItemHelpers
+                    text_content = ItemHelpers.text_message_output(event.item)
+                    if text_content:
+                        yield f"data: {text_content}\n\n"
+            elif event.type == "raw_response_event":
+                # Handle raw response events for token-by-token streaming
+                from openai.types.responses import ResponseTextDeltaEvent
+                if isinstance(event.data, ResponseTextDeltaEvent):
+                    if event.data.delta:
+                        yield f"data: {event.data.delta}\n\n"
 
-    return StreamingResponse(stream(), media_type="text/plain")
+
+
+        yield "data: [DONE]\n\n"
+
+    except Exception as e:
+        logging.exception("Agent processing failed")
+        yield f"data: ERROR: {str(e)}\n\n"
+
+# ───────────────────────────────
+# POST endpoint to stream agent
+# ───────────────────────────────
+@app.post("/api/v1/chat", response_class=StreamingResponse)
+async def chat_endpoint(
+    body: ChatRequest,
+    _: HTTPAuthorizationCredentials = Depends(verify_token)
+):
+    if not body.messages:
+        raise HTTPException(status_code=400, detail="No messages provided")
+
+    last_message = body.messages[-1].content.strip()
+
+    return StreamingResponse(
+        agent_response_stream(last_message),
+        media_type="text/event-stream"
+    )
