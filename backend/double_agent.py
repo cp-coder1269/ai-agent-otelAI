@@ -26,7 +26,7 @@ class ReadSheetResult(TypedDict):
     columns: List[str]
     rows: List[dict]
 
-# @function_tool
+@function_tool
 def read_sheet_with_custom_header(
     filepath: str,
     sheet: str,
@@ -34,7 +34,19 @@ def read_sheet_with_custom_header(
     columns: Optional[List[str]] = None
 ) -> ReadSheetResult:
     """
-    Reads an Excel sheet with a custom header row, returning raw + sanitised data of the selected columns if provided else returns all the columns.
+    Reads an Excel sheet using a custom header row.
+
+    Args:
+    - filepath: Path to the Excel file.
+    - sheet: Sheet name to read.
+    - config: Optional dict with 'start' (required) and 'end' (optional) row indices for reading.
+    - columns: Optional list of column names to select (case-insensitive).
+
+    Returns:
+    - A dict with:
+    - 'sheet': Sheet name.
+    - 'columns': Sanitized lowercase column names.
+    - 'rows': List of row dicts with selected or all columns.
     """
     logging.info(
         f"read_sheet_with_custom_header(filepath={filepath}, "
@@ -366,10 +378,10 @@ async def data_analyser():
         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
     )
 
-    question = "read report criteria"
+    question = "read report criteria read only enddate and currency"
     result = await Runner.run(data_analyser_assistant, question)
     print(result.final_output)
 
 if __name__ == "__main__":
-    # asyncio.run(data_analyser())
-    print(read_sheet_with_custom_header(filepath="data/TheAlexIdeas27_June_2025.xlsx", sheet="Room Type", config={ "start": 0, "end": 5 } ) )
+    asyncio.run(data_analyser())
+    # print(read_sheet_with_custom_header(filepath="data/TheAlexIdeas27_June_2025.xlsx", sheet="Room Type", config={ "start": 0, "end": 5 } ) )
