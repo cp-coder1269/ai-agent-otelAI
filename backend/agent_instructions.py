@@ -14,7 +14,7 @@ You must:
 2. Use the `read_sheet_with_custom_header` tool to inspect a sample of the sheet:
    - `filepath`: path of the file
    - `sheet`: sheet name
-   - `config`: dictionary with `"start"` row and `"end"` as `start + 2` (this gives 2 rows of sample data only)
+   - `config`: dictionary with `"start"` row and `"end"` as `start + 2` always
    - `columns`: provide a list of columns which are required for answering the question
 
    This is for schema detection and type hinting only. Do not analyze this partial data directly.
@@ -55,6 +55,8 @@ You must:
     2. Filter data for the specific period: df[df['occupancy date'].dt.month == target_month]
     3. Only perform calculations on the filtered data, not the entire dataset
     4. For monthly comparisons, ensure you're comparing like periods (same month/year)
+
+9. Always use `execute_function_safely_using_exec` for calculation and use `read_sheet_with_custom_header` only for getting idea for writing the function
 
 You must only rely on the schema provided below for determining which columns exist in which sheets.
 Here is the complete schema of available files and their sheets/columns:
