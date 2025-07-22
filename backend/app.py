@@ -1,16 +1,15 @@
 # This code is used to run and test agent locally
 import logging
-from typing import AsyncGenerator, List, Literal, Optional
+from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
 import os
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
 from agents import Agent, Runner, function_tool
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from openai.types.responses import ResponseTextDeltaEvent
 from pydantic import BaseModel
 
 from backend.code_executor import _execute_function_safely_using_exec
@@ -93,13 +92,6 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
 
-# HOTEL_DATA_ANALYSER_AGENT = Agent(
-#         name="Hotel Data Analyser",
-#         instructions=instructions,
-#         # model="gpt-4o-mini",
-#         tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
-#     )
-
 def latest_user_question(messages: List[ChatMessage]) -> str:
     for msg in reversed(messages):
         if msg.role == "user" and msg.content.strip():
@@ -113,38 +105,6 @@ security = HTTPBearer()
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if credentials.credentials != TOKEN:
         raise HTTPException(status_code=401, detail="Invalid or missing token")
-
-
-# @app.post("/api/v1/chat")
-# async def chat_endpoint(request: ChatRequest, _: HTTPAuthorizationCredentials = Depends(verify_token)):
-#     """
-#     POST /api/v1/chat
-#     {
-#         "messages": [
-#             {"role": "user", "content": "How are you?"},
-#             {"role": "assistant",   "content": "I am good"},
-#             {"role": "user", "content": "read the report criteria ?"}
-#         ]
-#     }
-#     """
-#     try:
-#         question = latest_user_question(request.messages)
-#     except ValueError as e:
-#         raise HTTPException(status_code=400, detail=str(e))
-
-#     async def stream() -> AsyncGenerator[str, None]:
-#         runner = Runner.run_streamed(HOTEL_DATA_ANALYSER_AGENT, question)
-#         async for event in runner.stream_events():
-#             if (
-#                 event.type == "raw_response_event"
-#                 and isinstance(event.data, ResponseTextDeltaEvent)
-#                 and event.data.delta
-#             ):
-#                 print(event.data.delta, end="", flush=True)
-#                 # Convert any delta payload (obj / dict / str) → str for the wire
-#                 yield str(event.data.delta)
-
-#     return StreamingResponse(stream(), media_type="text/plain")
 
 # SSE-style generator for streaming agent response
 async def agent_response_stream(question: str):
