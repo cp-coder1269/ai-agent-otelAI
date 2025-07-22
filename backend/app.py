@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
-from agents import Agent, Runner, function_tool
+from agents import Agent, InputGuardrailTripwireTriggered, Runner, function_tool
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from backend.code_executor import _execute_function_safely_using_exec
 from backend.excel_file_reader import ReadSheetResult, SheetConfig, _read_sheet_with_custom_header
 from backend.agent_instructions import INSTRUCTIONS as instructions
+from backend.input_guardrail import hotel_domain_guardrail
 
 
 load_dotenv(override=True)
@@ -113,6 +114,7 @@ async def agent_response_stream(question: str):
             name="Hotel Data Analyser",
             instructions=instructions,
             tools=[read_sheet_with_custom_header, execute_function_safely_using_exec],
+            input_guardrails=[hotel_domain_guardrail]
         )
 
         # Use Runner.run_streamed() as a class method
@@ -137,6 +139,20 @@ async def agent_response_stream(question: str):
 
 
 
+        yield "data: [DONE]\n\n"
+    except InputGuardrailTripwireTriggered as e:
+        # Try to extract reasoning if available
+        reasoning = "Your question is not related to hotel data analysis."
+        if e.args and hasattr(e.args[0], "output_info"):
+            output_info = e.args[0].output_info
+            reasoning = getattr(output_info, "reasoning", reasoning)
+
+        # Stream the guardrail rejection message
+        yield f"data: ❌ Your question was rejected by the hotel domain guardrail.\n\n"
+        yield f"data: 🧠 Reason: {reasoning}\n\n"
+        yield f"data: 💡 Try asking something related to hotels or hotel data analysis, like:\n\n"
+        yield f"data:    - 'What is the room revenue in January?'\n\n"
+        yield f"data:    - 'Compare occupancy between August and September.'\n\n"
         yield "data: [DONE]\n\n"
 
     except Exception as e:
