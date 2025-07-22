@@ -1,0 +1,27 @@
+[2025-07-22 17:35:57] 
+🔍 [1/4] Q: What is the total room revenue for January from Budget?
+[2025-07-22 17:36:07] 🧠 Agent Answer: The total room revenue for January from the Budget sheet is 372,965.
+[2025-07-22 17:36:07] ✅ Expected: 372965
+[2025-07-22 17:36:09] ✅ Match: PASSED
+[2025-07-22 17:36:09] 
+🔍 [2/4] Q: On which day in August do we have maximum Occupancy On Books This Year?
+[2025-07-22 17:36:26] 🧠 Agent Answer: The day in August with the maximum "Occupancy On Books This Year" is August 9th, 2025.
+[2025-07-22 17:36:26] ✅ Expected: 09-Aug-2025 or 16-Aug-2025 and maximum occupancy is 106
+[2025-07-22 17:36:27] ✅ Match: PASSED
+[2025-07-22 17:36:27] 
+🔍 [3/4] Q: what is total room revenue?
+[2025-07-22 17:36:37] 🧠 Agent Answer: The total room revenue from the "Budget" sheet is 7,638,664.
+[2025-07-22 17:36:37] ✅ Expected: 7638664
+[2025-07-22 17:36:38] ✅ Match: PASSED
+[2025-07-22 17:36:38] 
+🔍 [4/4] Q: What is the on-the-books (OTB) revenue for August compared to the same time last year (STLY)?
+[2025-07-22 17:36:58] 🧠 Agent Answer: The on-the-books (OTB) revenue analysis for August is as follows:
+
+- **August Revenue This Year**: \$625,316.94
+- **August Revenue Same Time Last Year (STLY)**: \$591,839.79
+
+This indicates an increase in booked room revenue for August compared to the same period last year.
+[2025-07-22 17:36:58] ✅ Expected: booked room revenue this year is 625316.94  and booked room revenue STLY is 591839.79
+[2025-07-22 17:36:59] ✅ Match: PASSED
+[2025-07-22 17:36:59] 
+📊 Final Score: 4/4 correct (100.0%)
