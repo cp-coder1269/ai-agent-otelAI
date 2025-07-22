@@ -4,6 +4,7 @@ from openai import AsyncOpenAI
 from backend.hotel_agent import agent_response_non_stream
 from evaluation_data import EVALUATION_SAMPLES
 import os
+
 # Get current script directory
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -12,9 +13,12 @@ log_dir = os.path.join(current_dir, "result_logs")
 os.makedirs(log_dir, exist_ok=True)
 
 # Log file path with timestamp
-log_filename = os.path.join(log_dir, f"eval_results_{datetime.now().strftime('%d-%m-%Y_%H:%M')}.txt")
+log_filename = os.path.join(
+    log_dir, f"eval_results_{datetime.now().strftime('%d-%m-%Y_%H:%M')}.txt"
+)
 
 openai = AsyncOpenAI()  # Make sure to set OPENAI_API_KEY in your environment
+
 
 async def judge_answer(question: str, expected: str, actual: str) -> bool:
     """Uses GPT to judge if actual answer matches the expected one."""
@@ -51,6 +55,7 @@ async def judge_answer(question: str, expected: str, actual: str) -> bool:
     reply = response.choices[0].message.content.strip().lower()
     return "yes" in reply
 
+
 async def evaluate():
     logs = []
     total = len(EVALUATION_SAMPLES)
@@ -66,7 +71,9 @@ async def evaluate():
             logs.append(timestamped(f"🧠 Agent Answer: {agent_answer}"))
             logs.append(timestamped(f"✅ Expected: {sample['expected_answer']}"))
 
-            correct = await judge_answer(sample["question"], sample["expected_answer"], agent_answer)
+            correct = await judge_answer(
+                sample["question"], sample["expected_answer"], agent_answer
+            )
             if correct:
                 logs.append(timestamped("✅ Match: PASSED"))
                 passed += 1
@@ -75,7 +82,9 @@ async def evaluate():
         except Exception as e:
             logs.append(timestamped(f"⚠️ Error during evaluation: {str(e)}"))
 
-    final_score = f"\n📊 Final Score: {passed}/{total} correct ({(passed/total)*100:.1f}%)"
+    final_score = (
+        f"\n📊 Final Score: {passed}/{total} correct ({(passed/total)*100:.1f}%)"
+    )
     logs.append(timestamped(final_score))
 
     # Print to console
@@ -86,6 +95,7 @@ async def evaluate():
         f.write("\n".join(logs))
 
     print(f"\n📝 Evaluation log written to {log_filename}")
+
 
 if __name__ == "__main__":
     asyncio.run(evaluate())

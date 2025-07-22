@@ -1,3 +1,4 @@
+# Not in use
 import logging
 from typing import List, Optional, TypedDict
 
@@ -10,7 +11,8 @@ from agents import function_tool
 # Define strict types for function_tool compatibility
 class SheetConfig(TypedDict, total=False):
     start: int
-    end: Optional[int]=None
+    end: Optional[int] = None
+
 
 class ReadSheetResult(TypedDict):
     sheet: str
@@ -18,11 +20,10 @@ class ReadSheetResult(TypedDict):
     columns: List[str]
     rows: List[dict]
 
+
 @function_tool
 def read_sheet_with_custom_header(
-    filepath: str,
-    sheet: str,
-    config: Optional[SheetConfig] = None
+    filepath: str, sheet: str, config: Optional[SheetConfig] = None
 ) -> ReadSheetResult:
     """
     Reads an Excel sheet with a custom header row, returning both raw and sanitized data.

@@ -13,7 +13,11 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
 from backend.code_executor import _execute_function_safely_using_exec
-from backend.excel_file_reader import ReadSheetResult, SheetConfig, _read_sheet_with_custom_header
+from backend.excel_file_reader import (
+    ReadSheetResult,
+    SheetConfig,
+    _read_sheet_with_custom_header,
+)
 from backend.agent_instructions import INSTRUCTIONS as instructions
 from backend.input_guardrail import hotel_domain_guardrail
 
@@ -22,24 +26,22 @@ load_dotenv(override=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("api.log"),
-        logging.StreamHandler()
-    ]
+    handlers=[logging.FileHandler("api.log"), logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
 # Load TOKEN from environment
-TOKEN = os.environ.get('TOKEN')
+TOKEN = os.environ.get("TOKEN")
 if not TOKEN:
-    raise RuntimeError('TOKEN environment variable not set')
+    raise RuntimeError("TOKEN environment variable not set")
+
 
 @function_tool
 def read_sheet_with_custom_header(
     filepath: str,
     sheet: str,
     config: Optional[SheetConfig] = None,
-    columns: Optional[List[str]] = None
+    columns: Optional[List[str]] = None,
 ) -> ReadSheetResult:
     """
     Reads an Excel sheet using a custom header row.
@@ -57,17 +59,14 @@ def read_sheet_with_custom_header(
     - 'rows': List of row dicts with selected or all columns.
     """
     try:
-        return _read_sheet_with_custom_header(filepath,sheet,config,columns)
+        return _read_sheet_with_custom_header(filepath, sheet, config, columns)
     except Exception as e:
         logger.error(f"Error reading sheet: {str(e)}")
         raise
 
 
 @function_tool
-def execute_function_safely_using_exec(
-    func_string: str,
-    function_name: str
-) -> str:
+def execute_function_safely_using_exec(func_string: str, function_name: str) -> str:
     """
     Executes a given Python function defined in a code block in the LLM's response.
 
@@ -89,15 +88,16 @@ hotel_data_analyser_agent = Agent(
     name="Hotel Data Analyser",
     instructions=instructions,
     tools=[read_sheet_with_custom_header, execute_function_safely_using_exec],
-    input_guardrails=[hotel_domain_guardrail]
+    input_guardrails=[hotel_domain_guardrail],
 )
+
 
 # SSE-style generator for streaming agent response
 async def agent_response_stream(question: str):
     try:
         # Use Runner.run_streamed() as a class method
         result = Runner.run_streamed(hotel_data_analyser_agent, input=question)
-        
+
         # Stream events from the result
         async for event in result.stream_events():
             # Handle different event types
@@ -105,17 +105,17 @@ async def agent_response_stream(question: str):
                 if event.item.type == "message_output_item":
                     # Extract text from message output
                     from agents import ItemHelpers
+
                     text_content = ItemHelpers.text_message_output(event.item)
                     if text_content:
                         yield f"data: {text_content}\n\n"
             elif event.type == "raw_response_event":
                 # Handle raw response events for token-by-token streaming
                 from openai.types.responses import ResponseTextDeltaEvent
+
                 if isinstance(event.data, ResponseTextDeltaEvent):
                     if event.data.delta:
                         yield f"data: {event.data.delta}\n\n"
-
-
 
         yield "data: [DONE]\n\n"
     except InputGuardrailTripwireTriggered as e:
@@ -136,6 +136,7 @@ async def agent_response_stream(question: str):
     except Exception as e:
         logging.exception("Agent processing failed")
         yield f"data: ERROR: {str(e)}\n\n"
+
 
 async def agent_response_non_stream(question: str) -> str:
     agent = hotel_data_analyser_agent

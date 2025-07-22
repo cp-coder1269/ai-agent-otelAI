@@ -10,7 +10,7 @@ SCHEMA = {
                 "Room Type per Ideas\n": "str",
                 "Room Class per Ideas": "str",
                 "Number of Rooms": "int",
-                "Zip & Link": "float"
+                "Zip & Link": "float",
             },
             "Segment Descriptions": {
                 "Segment Name": "str",
@@ -18,14 +18,14 @@ SCHEMA = {
                 "Desc": "str",
                 "Macro Group": "str",
                 "Owner": "str",
-                "Lead Time": "str"
+                "Lead Time": "str",
             },
             "OTA Commission Rates": {
                 "Segment Name": "str",
                 "Definition": "str",
                 "Desc": "str",
                 "Macro Group": "str",
-                "Commission": "str"
+                "Commission": "str",
             },
             "Budget": {
                 "Group or Transient": "str",
@@ -70,7 +70,7 @@ SCHEMA = {
                 "Dec ADR ": "float",
                 "Total Rooms": "float",
                 "Total Rooms Revenue": "float",
-                "Total ADR": "float"
+                "Total ADR": "float",
             },
             "PY Event Diary": {
                 "Special Event Name": "str",
@@ -86,10 +86,10 @@ SCHEMA = {
                 "Created By": "str",
                 "Created On": "str",
                 "Updated By": "str",
-                "Updated On": "str"
-            }
+                "Updated On": "str",
+            },
         },
-        "sheet_configs": OC_SHEET_CONFIG
+        "sheet_configs": OC_SHEET_CONFIG,
     },
     "alex_ideas_file": {
         "file_path": "data/TheAlexIdeas27_June_2025.xlsx",
@@ -109,7 +109,7 @@ SCHEMA = {
                 "Booked Room Revenue This Year": "float",
                 "Booked Room Revenue STLY": "float",
                 "Forecasted Room Revenue This Year": "float",
-                "DLY1": "float"
+                "DLY1": "float",
             },
             "Room Type": {
                 "Property Name": "str",
@@ -117,7 +117,7 @@ SCHEMA = {
                 "Occupancy Date": "datetime",
                 "Room Type": "str",
                 "Room Class": "str",
-                "DLY1 This Year": "float"
+                "DLY1 This Year": "float",
             },
             "Business View": {
                 "Property Name": "str",
@@ -128,7 +128,7 @@ SCHEMA = {
                 "Occupancy On Books STLY": "int",
                 "Booked Room Revenue This Year": "float",
                 "Booked Room Revenue STLY": "float",
-                "Forecasted Room Revenue This Year": "float"
+                "Forecasted Room Revenue This Year": "float",
             },
             "Report Criteria": {
                 "Property Name": "str",
@@ -138,9 +138,9 @@ SCHEMA = {
                 "Inventory Group": "str",
                 "Created By": "str",
                 "Generated On": "str",
-                "Account ID": "str"
-            }
+                "Account ID": "str",
+            },
         },
-        "sheet_configs": THE_ALEX_SHEET_CONFIG
-    }
+        "sheet_configs": THE_ALEX_SHEET_CONFIG,
+    },
 }

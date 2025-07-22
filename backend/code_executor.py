@@ -9,10 +9,8 @@ def _extract_code_from_response(response: str) -> str:
     match = re.search(r"```(?:python)?[ \t]*\r?\n([\s\S]*?)```", response)
     return match.group(1).strip() if match else response.strip()
 
-def _execute_function_safely_using_exec(
-    func_string: str,
-    function_name: str
-) -> str:
+
+def _execute_function_safely_using_exec(func_string: str, function_name: str) -> str:
     """
     Executes a given Python function defined in a code block in the LLM's response.
 
@@ -23,39 +21,41 @@ def _execute_function_safely_using_exec(
     Returns:
     - str: The result of the function execution.
     """
-    print(f"[DEBUG] execute_function_safely_using_exec called with function_name={function_name}")
+    print(
+        f"[DEBUG] execute_function_safely_using_exec called with function_name={function_name}"
+    )
     print(f"[DEBUG] Function string:\n{func_string}")
     safe_globals = {
         "__builtins__": {
-        "__import__": __import__,
-        "len": len,
-        "range": range,
-        "str": str,
-        "int": int,
-        "float": float,
-        "list": list,
-        "dict": dict,
-        "tuple": tuple,
-        "set": set,
-        "print": print,
-        "sum": sum,
-        "max": max,
-        "min": min,
-        "abs": abs,
-        "round": round,
-        "enumerate": enumerate,
-        "zip": zip,
-        "sorted": sorted,
-        "any": any,
-        "all": all,
-    },
+            "__import__": __import__,
+            "len": len,
+            "range": range,
+            "str": str,
+            "int": int,
+            "float": float,
+            "list": list,
+            "dict": dict,
+            "tuple": tuple,
+            "set": set,
+            "print": print,
+            "sum": sum,
+            "max": max,
+            "min": min,
+            "abs": abs,
+            "round": round,
+            "enumerate": enumerate,
+            "zip": zip,
+            "sorted": sorted,
+            "any": any,
+            "all": all,
+        },
         "pd": pd,
         "re": re,
         "datetime": __import__("datetime"),
         "date": __import__("datetime").date,
         "datetime": __import__("datetime").datetime,
         "timedelta": __import__("datetime").timedelta,
-        "read_sheet_with_custom_header": _read_sheet_with_custom_header
+        "read_sheet_with_custom_header": _read_sheet_with_custom_header,
     }
     local_vars: dict = {}
 

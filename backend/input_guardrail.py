@@ -9,9 +9,11 @@ from agents import (
     input_guardrail,
 )
 
+
 class HotelRelatedOutput(BaseModel):
     is_hotel_data_related: bool
     reasoning: str
+
 
 hotel_guardrail_agent = Agent(
     name="Hoteln Data Domain Guardrail",
@@ -36,6 +38,7 @@ hotel_guardrail_agent = Agent(
     """,
     output_type=HotelRelatedOutput,
 )
+
 
 @input_guardrail
 async def hotel_domain_guardrail(

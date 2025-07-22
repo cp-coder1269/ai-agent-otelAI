@@ -9,18 +9,20 @@ from dotenv import load_dotenv
 # Define strict types for function_tool compatibility
 class SheetConfig(TypedDict, total=False):
     start: int
-    end: Optional[int]=None
+    end: Optional[int] = None
+
 
 class ReadSheetResult(TypedDict):
     sheet: str
     columns: List[str]
     rows: List[dict]
 
+
 def _read_sheet_with_custom_header(
     filepath: str,
     sheet: str,
     config: Optional[SheetConfig] = None,
-    columns: Optional[List[str]] = None
+    columns: Optional[List[str]] = None,
 ) -> ReadSheetResult:
     """
     Reads an Excel sheet using a custom header row.
@@ -59,13 +61,16 @@ def _read_sheet_with_custom_header(
     data_df.columns = header_row
     # print("data_df.columns: ", data_df.columns)
     if columns:
+
         def normalize(col: str) -> str:
             return str(col).strip().lower()
 
         actual_header_map = {normalize(col): col for col in data_df.columns}
         requested_normalized = [normalize(col) for col in columns]
 
-        missing = [col for col in requested_normalized if col and col not in actual_header_map]
+        missing = [
+            col for col in requested_normalized if col and col not in actual_header_map
+        ]
         if missing:
             raise ValueError(
                 f"Some requested columns were not found in the header: {missing}\n"

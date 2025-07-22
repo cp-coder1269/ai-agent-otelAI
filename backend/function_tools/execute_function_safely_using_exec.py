@@ -1,10 +1,22 @@
+# Not in use
+import json
+import logging
 import re
+from typing import AsyncGenerator, List, Optional, TypedDict
 
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 import pandas as pd
+from dotenv import load_dotenv
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
-from agents import function_tool
+from agents import Agent, ModelSettings, Runner, function_tool
+from openai.types.responses import ResponseTextDeltaEvent
+from pydantic import BaseModel, Field
+from typing import Literal
 
+from backend.helpers.schema import SCHEMA
+from backend.hotel_agent import HOTEL_DATA_ANALYSER_AGENT
 
 
 def _extract_code_from_response(response: str) -> str:
@@ -14,10 +26,7 @@ def _extract_code_from_response(response: str) -> str:
 
 
 @function_tool
-def execute_function_safely_using_exec(
-    func_string: str,
-    function_name: str
-) -> str:
+def execute_function_safely_using_exec(func_string: str, function_name: str) -> str:
     """
     Executes a given Python function defined in a code block in the LLM's response.
 
@@ -28,7 +37,9 @@ def execute_function_safely_using_exec(
     Returns:
     - str: The result of the function execution.
     """
-    print(f"[DEBUG] execute_function_safely_using_exec called with function_name={function_name}")
+    print(
+        f"[DEBUG] execute_function_safely_using_exec called with function_name={function_name}"
+    )
     print(f"[DEBUG] Function string:\n{func_string}")
     safe_globals = {
         "__builtins__": {
