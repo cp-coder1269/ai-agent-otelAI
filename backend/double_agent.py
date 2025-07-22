@@ -6,11 +6,12 @@ from typing import List, Optional
 from dotenv import load_dotenv
 
 # NOTE: agents library provides Agent, Runner, ModelSettings, function_tool
-from agents import Agent, Runner, function_tool
+from agents import Agent, InputGuardrailTripwireTriggered, Runner, function_tool
 
 from backend.code_executor import _execute_function_safely_using_exec
 from backend.excel_file_reader import ReadSheetResult, SheetConfig, _read_sheet_with_custom_header
 from backend.agent_instructions import INSTRUCTIONS as instructions
+from backend.input_guardrail import hotel_domain_guardrail
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Setup & logging
@@ -67,12 +68,28 @@ async def data_analyser():
         name="Hotel Data Analyser",
         instructions=instructions,
         # model="gpt-4o-mini",
-        tools=[read_sheet_with_custom_header, execute_function_safely_using_exec]
+        tools=[read_sheet_with_custom_header, execute_function_safely_using_exec],
+        input_guardrails=[hotel_domain_guardrail]
     )
 
-    question = "in the month of august which date has the maximum occupancy?"
-    result = await Runner.run(data_analyser_assistant, question)
-    print(result.final_output)
+    question = "what is the school?"
+    question = "what is the revenue for january?"
+    try:
+        result = await Runner.run(data_analyser_assistant, question)
+        print(result.final_output)
+    except InputGuardrailTripwireTriggered as e:
+        output_info = None
+
+        if e.args and hasattr(e.args[0], "output_info"):
+            output_info = e.args[0].output_info
+
+        reasoning = getattr(output_info, "reasoning", "This input was rejected by the domain guardrail.")
+
+        print("\n❌ Your question was rejected by the hotel domain guardrail.")
+        print(f"🧠 Reason: {reasoning}")
+        print("💡 Try asking something which is unrelated to hotels or hotel data analysis like:")
+        print("   - 'What is the room revenue in January?'")
+        print("   - 'Compare occupancy between August and September.'")
 
 if __name__ == "__main__":
     asyncio.run(data_analyser())
