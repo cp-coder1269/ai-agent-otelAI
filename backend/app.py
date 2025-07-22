@@ -107,18 +107,19 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     if credentials.credentials != TOKEN:
         raise HTTPException(status_code=401, detail="Invalid or missing token")
 
+hotel_data_analyser_agent = Agent(
+    name="Hotel Data Analyser",
+    instructions=instructions,
+    tools=[read_sheet_with_custom_header, execute_function_safely_using_exec],
+    input_guardrails=[hotel_domain_guardrail]
+)
+
 # SSE-style generator for streaming agent response
 async def agent_response_stream(question: str):
     try:
-        agent = Agent(
-            name="Hotel Data Analyser",
-            instructions=instructions,
-            tools=[read_sheet_with_custom_header, execute_function_safely_using_exec],
-            input_guardrails=[hotel_domain_guardrail]
-        )
 
         # Use Runner.run_streamed() as a class method
-        result = Runner.run_streamed(agent, input=question)
+        result = Runner.run_streamed(hotel_data_analyser_agent, input=question)
         
         # Stream events from the result
         async for event in result.stream_events():
