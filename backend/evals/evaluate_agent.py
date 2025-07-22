@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
 from openai import AsyncOpenAI
-from backend.evals.agent_runner_non_streaming import run_agent
+from backend.hotel_agent import agent_response_non_stream
 from evaluation_data import EVALUATION_SAMPLES
 import os
 # Get current script directory
@@ -62,7 +62,7 @@ async def evaluate():
     for idx, sample in enumerate(EVALUATION_SAMPLES, start=1):
         logs.append(timestamped(f"\n🔍 [{idx}/{total}] Q: {sample['question']}"))
         try:
-            agent_answer = await run_agent(sample["question"])
+            agent_answer = await agent_response_non_stream(sample["question"])
             logs.append(timestamped(f"🧠 Agent Answer: {agent_answer}"))
             logs.append(timestamped(f"✅ Expected: {sample['expected_answer']}"))
 
